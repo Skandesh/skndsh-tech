@@ -1,0 +1,7 @@
+{
+  "name": "AETHER // Design Portfolio",
+  "description": "A high-concept, sci-fi inspired product design portfolio featuring 3D fluid shaders, dithering effects, and an AI assistant.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
