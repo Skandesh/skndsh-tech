@@ -5,6 +5,8 @@ import mdx from '@mdx-js/rollup';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 
+import tailwindcss from '@tailwindcss/vite';
+
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
@@ -13,6 +15,7 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
       },
       plugins: [
+        tailwindcss(),
         mdx({
           remarkPlugins: [
             remarkFrontmatter,
