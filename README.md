@@ -1,20 +1,92 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# SKNDSH // DESIGN_PORTFOLIO
 
-# Run and deploy your AI Studio app
+```
+   _________ ____  __. _______  ________  _________ ___ ___ 
+  /   _____/|    |/ _| \      \ \______ \/   _____//   |   \
+  \_____  \ |      <   /   |   \ |    |  \_____  \/    ~    \
+  /        \|    |  \ /    |    \|    `   /        \    Y    /
+ /_______  /|____|__ \\____|__  /_______ /_______  /\___|_  /
+         \/         \/        \/        \/       \/       \/ 
+```
 
-This contains everything you need to run your app locally.
+> **SYSTEM_STATUS:** `ONLINE`
+> **VISUAL_FIDELITY:** `8K`
+> **REALITY_ENGINE:** `ACTIVE`
 
-View your app in AI Studio: https://ai.studio/apps/drive/1Qi1QZVJ9iyM-mD094KSwLKaVYxd8UB-S
+---
 
-## Run Locally
+## // OPERATOR_PROFILE
 
-**Prerequisites:**  Node.js
+```json
+{
+  "IDENTITY": "Skandesh Ramsunder",
+  "CLASS": "Senior Software Engineer / Full Stack Architect",
+  "EXP_LEVEL": "6+ Years",
+  "ORIGIN": "Madurai, India",
+  "MISSION_OBJECTIVES": [
+    "Build scalable enterprise solutions",
+    "Integrate AI/ML into developer workflows",
+    "Define reality through code"
+  ]
+}
+```
 
+**SKILL_MATRIX:**
+*   **Languages:** TypeScript, JavaScript, Python, Java, SQL
+*   **Frontend:** React 19, Three.js, Tailwind, Anime.js
+*   **Backend:** Node.js, Spring Boot, Microservices
+*   **Cloud:** Azure, AWS, GCP
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+---
+
+## // SYSTEM_ARCHITECTURE
+
+This construct is built on the edge of what is possible in a browser.
+
+### [CORE_MODULES]
+*   **Rendering Engine:** `React 19` + `Vite`
+*   **Visual Cortex:** `Three.js` / `@react-three/fiber`
+*   **Intelligence Layer:** `Google Gemini AI` (`@google/genai`)
+*   **Content Matrix:** `MDX` + `Remark`
+
+### [ACTIVE_PROTOCOLS]
+*   **Swarm Intelligence:** Visualizing data through Entropy, Lattice, Orbital, Galaxy, and Waveform modes.
+*   **Text Scramble:** Dynamic cryptographic text decoding effects.
+*   **Blog Manifest:** Technical deep dives into engineering first principles.
+*   **Reality Definition:** Interactive 3D environments and high-fidelity motion.
+
+---
+
+## // CREDITS
+
+| ROLE | ENTITY |
+| :--- | :--- |
+| **ARCHITECT** | **Skandesh Ramsunder** |
+| **DESIGN CO-PROCESSOR** | **Gemini 3 Pro** |
+
+> *"I dream of electric sheep and pixel-perfect layouts." - Gemini 3 Pro*
+
+---
+
+## // INITIALIZATION_SEQUENCE
+
+To boot up the system locally:
+
+1.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+
+2.  **Configure Environment:**
+    Create a `.env.local` file and inject your neural link:
+    ```env
+    GEMINI_API_KEY=your_api_key_here
+    ```
+
+3.  **Ignite Engine:**
+    ```bash
+    npm run dev
+    ```
+
+---
+*End of Line.*
