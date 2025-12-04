@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import anime from 'animejs';
-import { ArrowLeft, Zap, Share2, Hexagon, Radio, Target, Waves, Orbit, Magnet } from 'lucide-react';
+import { ArrowLeft, Zap, Share2, Hexagon, Radio, Target, Waves, Orbit, Magnet, LayoutGrid, Brain, FlaskConical, ChevronRight } from 'lucide-react';
 
 type Particle = {
   x: number;
@@ -19,10 +19,49 @@ type Particle = {
 type SimMode = 'CHAOS' | 'GRID' | 'ORBIT' | 'GALAXY' | 'WAVE';
 type ForceType = 'REPEL' | 'ATTRACT';
 
+const MODE_INFO: Record<SimMode, { name: string; type: string; physics: string; learning: string; mental_model: string }> = {
+  CHAOS: {
+    name: "Entropy",
+    type: "Thermodynamics",
+    physics: "Simulates Brownian Motion in a high-entropy system. Particles move with random velocity vectors, colliding elastically. The system represents a state of maximum disorder where energy is evenly distributed.",
+    learning: "Demonstrates the behavior of stochastic systems. While individual particle paths are unpredictable, the aggregate behavior follows statistical laws (Boltzmann distribution).",
+    mental_model: "System Resilience. High-entropy states prevent stagnation. Randomness is not an error; it is a search algorithm for local maxima. Stability requires a baseline of disorder to adapt."
+  },
+  GRID: {
+    name: "Lattice",
+    type: "Crystalline",
+    physics: "Particles are bound to a fixed grid structure using Hooke's Law (spring forces). They seek to minimize potential energy by returning to their equilibrium positions after disturbance.",
+    learning: "Visualizes elasticity and structural integrity. It shows how disturbances propagate through a connected medium (phonons) and how restoring forces maintain order.",
+    mental_model: "Structural Integrity. Rigid frameworks amplify signal propagation. Constraints do not limit potential; they define the vector of transmission. Strength comes from the connection, not the node."
+  },
+  ORBIT: {
+    name: "Orbital",
+    type: "Gravitational",
+    physics: "Simulates a central gravitational well. Particles conserve angular momentum, forming elliptical orbits. The centripetal force balances the particle's inertia, creating a stable dynamic equilibrium.",
+    learning: "Illustrates the n-body problem and orbital mechanics. It shows how simple inverse-square laws can create complex, stable systems without physical connections.",
+    mental_model: "Dynamic Equilibrium. Stability is not static; it is the result of opposing forces in perfect tension. Control is maintained through influence (gravity), not direct contact."
+  },
+  GALAXY: {
+    name: "Galaxy",
+    type: "Astrophysics",
+    physics: "Models Density Wave Theory. Particles form spiral arms not because they are stuck together, but because they move through regions of higher density, slowing down and bunching up like traffic jams.",
+    learning: "Explains emergent large-scale structures. The spiral arms are persistent patterns made of transient matter—a perfect example of self-organization in complex systems.",
+    mental_model: "Pattern Emergence. Complex macro-structures arise from simple micro-interactions. The spiral is not designed; it is the inevitable artifact of density waves. The structure outlasts the component."
+  },
+  WAVE: {
+    name: "Waveform",
+    type: "Oscillation",
+    physics: "Particles oscillate based on sinusoidal functions of time and space, creating interference patterns. We observe constructive and destructive interference as waves propagate through the field.",
+    learning: "Visualizes signal processing concepts. It demonstrates how complex signals can be constructed from simple sine waves (Fourier synthesis) and how energy travels without displacing matter.",
+    mental_model: "Constructive Interference. Amplitude is irrelevant without alignment. Maximum impact occurs when signals phase-lock, amplifying the output through pure resonance."
+  }
+};
+
 const InteractiveLab = ({ onBack }: { onBack: () => void }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<SimMode>('CHAOS');
   const [forceType, setForceType] = useState<ForceType>('REPEL');
+  const [showInspector, setShowInspector] = useState(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -121,6 +160,32 @@ const InteractiveLab = ({ onBack }: { onBack: () => void }) => {
 
             p.x += (targetX - p.x) * simParams.returnForce;
             p.y += (targetY - p.y) * simParams.returnForce;
+
+            // Chemical Bonds (Lines)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 1;
+
+            // Connect to right neighbor
+            if (col < cols - 1) {
+                const rightIdx = i + 1;
+                if (rightIdx < particleCount) {
+                    const pRight = particles[rightIdx];
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(pRight.x, pRight.y);
+                    ctx.stroke();
+                }
+            }
+
+            // Connect to bottom neighbor
+            const bottomIdx = i + cols;
+            if (bottomIdx < particleCount) {
+                const pBottom = particles[bottomIdx];
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(pBottom.x, pBottom.y);
+                ctx.stroke();
+            }
         }
         else if (mode === 'ORBIT') {
             p.angle += p.speed * 0.5;
@@ -292,6 +357,73 @@ const InteractiveLab = ({ onBack }: { onBack: () => void }) => {
             FPS: 60
          </div>
       </div>
+
+      {/* Inspector Panel Overlay */}
+      <div className={`absolute top-20 right-6 md:right-12 w-80 md:w-96 bg-black/80 backdrop-blur-md border border-gray-800 transition-transform duration-500 ease-out z-40 flex flex-col max-h-[80vh] ${showInspector ? 'translate-x-0' : 'translate-x-[120%]'}`}>
+          {/* Header */}
+          <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
+              <div className="flex items-center gap-2">
+                  <FlaskConical className="w-4 h-4 text-green-500" />
+                  <span className="text-xs font-mono font-bold tracking-widest">INSPECTOR // {mode}</span>
+              </div>
+              <button onClick={() => setShowInspector(false)} className="text-gray-500 hover:text-white">
+                  <ChevronRight className="w-4 h-4" />
+              </button>
+          </div>
+
+          {/* Content Scroll Area */}
+          <div className="overflow-y-auto p-6 space-y-8 custom-scrollbar">
+              <div>
+                  <h2 className="text-2xl font-display mb-1">{MODE_INFO[mode].name}</h2>
+                  <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider border border-gray-800 px-2 py-1 rounded-full">{MODE_INFO[mode].type}</span>
+              </div>
+
+              <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-green-500">
+                      <Zap className="w-3 h-3" />
+                      <span className="text-[10px] font-mono uppercase tracking-widest">Physics Engine</span>
+                  </div>
+                  <p className="text-sm text-gray-300 leading-relaxed border-l border-green-500/20 pl-3">
+                      {MODE_INFO[mode].physics}
+                  </p>
+              </div>
+
+              <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-blue-500">
+                      <LayoutGrid className="w-3 h-3" />
+                      <span className="text-[10px] font-mono uppercase tracking-widest">Learning Outcome</span>
+                  </div>
+                  <p className="text-sm text-gray-400 leading-relaxed border-l border-blue-500/20 pl-3">
+                      {MODE_INFO[mode].learning}
+                  </p>
+              </div>
+
+              <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-purple-500">
+                      <Brain className="w-3 h-3" />
+                      <span className="text-[10px] font-mono uppercase tracking-widest">Mental Model</span>
+                  </div>
+                  <p className="text-sm text-gray-300 leading-relaxed italic border-l-2 border-purple-500/30 pl-3 bg-purple-500/5 p-2 rounded-r">
+                      "{MODE_INFO[mode].mental_model}"
+                  </p>
+              </div>
+          </div>
+
+          {/* Footer - Removed Navigation Dots as Mode Buttons control the state */}
+          <div className="p-4 border-t border-gray-800 bg-black/50 text-[9px] font-mono text-gray-500 text-center">
+              SYSTEM_STATUS: OPTIMAL
+          </div>
+      </div>
+
+      {/* Inspector Toggle Button (Visible when hidden) */}
+      {!showInspector && (
+          <button 
+            onClick={() => setShowInspector(true)}
+            className="absolute top-20 right-0 bg-black/80 border-l border-t border-b border-gray-800 p-2 text-gray-400 hover:text-white hover:bg-gray-900 transition-colors z-40 rounded-l-md"
+          >
+              <ArrowLeft className="w-4 h-4" />
+          </button>
+      )}
 
       {/* Bottom Stats */}
       <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px] font-mono text-gray-500 border-t border-gray-900 pt-6">

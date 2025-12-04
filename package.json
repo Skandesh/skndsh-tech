@@ -4,22 +4,34 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "pnpm generate:manifest && vite",
+    "build": "pnpm generate:manifest && vite build",
+    "preview": "vite preview",
+    "generate:manifest": "tsx scripts/generate-blog-manifest.ts"
   },
   "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@mdx-js/react": "^3.1.1",
+    "@mdx-js/rollup": "^3.1.1",
+    "@react-three/fiber": "^9.4.0",
+    "animejs": "^3.2.2",
+    "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "@google/genai": "^1.30.0",
-    "lucide-react": "^0.554.0",
-    "@react-three/fiber": "^9.4.0",
-    "three": "^0.181.2",
-    "animejs": "^3.2.2"
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.9.6",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-mdx-frontmatter": "^5.2.0",
+    "three": "^0.181.2"
   },
   "devDependencies": {
+    "@types/mdx": "^2.0.13",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "glob": "^13.0.0",
+    "gray-matter": "^4.0.3",
+    "tsx": "^4.20.6",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

@@ -5,6 +5,7 @@ interface TextScrambleProps {
   className?: string;
   hoverTrigger?: boolean;
   duration?: number;
+  autoPlay?: boolean;
 }
 
 const CHARS = '!<>-_\\/[]{}—=+*^?#________';
@@ -13,11 +14,13 @@ const TextScramble: React.FC<TextScrambleProps> = ({
   text, 
   className = "", 
   hoverTrigger = true,
-  duration = 1000
+  duration = 1000,
+  autoPlay = false
 }) => {
   const [displayText, setDisplayText] = useState(text);
   const [isAnimating, setIsAnimating] = useState(false);
   const intervalRef = useRef<any>(null);
+  const spanRef = useRef<HTMLSpanElement>(null);
 
   const scramble = () => {
     if (isAnimating) return;
@@ -50,14 +53,21 @@ const TextScramble: React.FC<TextScrambleProps> = ({
   };
 
   useEffect(() => {
-    scramble(); // Scramble on mount
+    if (autoPlay) {
+      scramble();
+    }
     return () => clearInterval(intervalRef.current);
-  }, [text]);
+  }, [text, autoPlay]);
 
   return (
     <span 
+      ref={spanRef}
       className={className}
       onMouseEnter={() => hoverTrigger && scramble()}
+      style={{ 
+        display: 'inline-block', 
+        verticalAlign: 'bottom' // Ensures alignment with surrounding text
+      }}
     >
       {displayText}
     </span>

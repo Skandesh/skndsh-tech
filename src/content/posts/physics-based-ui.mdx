@@ -1,0 +1,55 @@
+---
+title: "THE MATH OF FEEL: PHYSICS-BASED UI"
+date: "2024.09.02"
+category: "DESIGN ENGINEERING"
+readTime: "10 MIN"
+---
+
+# WHY EASING ISN&apos;T ENOUGH
+
+Most animations use &quot;easing curves&quot; (ease-in, ease-out). They are predefined paths: &quot;Move from A to B in 0.5 seconds.&quot; But real life doesn&apos;t work like that. In real life, if I interrupt a moving object, it carries its momentum. Easing curves can&apos;t handle interruption—they just snap to a new path. It feels fake.
+
+# HOOKE&apos;S LAW
+
+To make UI feel &quot;real&quot;, we simulate a spring. A spring is defined by Hooke&apos;s Law: `F = -k * x`. The force pulling it back is proportional to how far you stretched it.
+
+But a spring alone oscillates forever. We need friction (damping) to stop it. The full equation for our UI spring is:
+
+`Acceleration = (-Stiffness * Displacement) - (Damping * Velocity)`
+
+```typescript
+class Spring {
+  private position: number = 0;
+  private velocity: number = 0;
+  private target: number = 0;
+
+  // Configuration
+  private stiffness: number = 120; // Tension (k)
+  private damping: number = 20;    // Friction (b)
+  private mass: number = 1;        // Mass (m)
+
+  update(deltaTime: number) {
+    // 1. Calculate distance to target
+    const displacement = this.position - this.target;
+
+    // 2. Calculate Spring Force (Hooke's Law)
+    // F_spring = -k * x
+    const springForce = -this.stiffness * displacement;
+
+    // 3. Calculate Damping Force (Friction)
+    // F_damping = -b * v
+    const dampingForce = -this.damping * this.velocity;
+
+    // 4. Newton's Second Law: F = ma -> a = F/m
+    const acceleration = (springForce + dampingForce) / this.mass;
+
+    // 5. Integrate Physics
+    this.velocity += acceleration * deltaTime; // Update velocity
+    this.position += this.velocity * deltaTime; // Update position
+
+    return this.position;
+  }
+}
+```
+
+This code runs every frame (60 times a second). Unlike a CSS transition, this system is &quot;interruptible&quot;. If the user grabs the object mid-animation, we just update the `velocity` based on their throw. The math handles the rest, preserving the momentum perfectly. This is why iOS animations feel so &quot;heavy&quot; and responsive compared to the web.

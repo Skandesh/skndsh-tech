@@ -1,0 +1,23 @@
+[
+  {
+    "slug": "debugging-distributed-state",
+    "title": "THE GHOST IN THE SHELL: DEBUGGING DISTRIBUTED STATE",
+    "date": "2024.11.24",
+    "category": "SYSTEMS",
+    "readTime": "12 MIN"
+  },
+  {
+    "slug": "webgl-particle-system",
+    "title": "RENDERING 1 MILLION PARTICLES: A GPGPU DEEP DIVE",
+    "date": "2024.10.15",
+    "category": "GRAPHICS",
+    "readTime": "15 MIN"
+  },
+  {
+    "slug": "physics-based-ui",
+    "title": "THE MATH OF \"FEEL\": PHYSICS-BASED UI",
+    "date": "2024.09.02",
+    "category": "DESIGN ENGINEERING",
+    "readTime": "10 MIN"
+  }
+]

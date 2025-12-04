@@ -1,0 +1,71 @@
+---
+title: "RENDERING 1 MILLION PARTICLES: A GPGPU DEEP DIVE"
+date: "2024.10.15"
+category: GRAPHICS
+readTime: "15 MIN"
+---
+
+# THE CPU BOTTLENECK
+
+JavaScript is single-threaded. If you want to animate 1,000 particles, you loop through them, update `x` and `y`, and draw. Easy. But 1,000,000 particles? That loop takes 500ms. Your 60fps animation becomes a 2fps slideshow.
+
+To hit 60fps, we have 16 milliseconds per frame. We can&apos;t touch the CPU. We need the GPU. But GPUs don&apos;t run JavaScript loops; they run Shaders. And Shaders don&apos;t have &quot;arrays&quot; of objects. They have Textures.
+
+# TEXTURES AS DATA
+
+This is the core concept of GPGPU (General Purpose GPU). We usually think of a texture as an image (Red, Green, Blue). But to a computer, Red is just a number. So, we can store data in those colors.
+
+Imagine a 1000x1000 image. That&apos;s 1,000,000 pixels.
+- `Red` channel = X position
+- `Green` channel = Y position
+- `Blue` channel = Z position
+- `Alpha` channel = Mass or Life
+
+```glsl
+// This shader runs for EVERY particle (pixel) simultaneously
+uniform sampler2D uPositionTexture; // The "Old" positions
+uniform sampler2D uVelocityTexture; // The velocities
+uniform float uTime;
+
+void main() {
+  // 1. Where am I in the texture? (0.0 to 1.0)
+  vec2 uv = gl_FragCoord.xy / resolution.xy;
+
+  // 2. Read my current state from the data texture
+  vec4 posData = texture2D(uPositionTexture, uv);
+  vec3 position = posData.rgb;
+  float life = posData.a; // Stored in alpha channel
+
+  // 3. Read my velocity
+  vec3 velocity = texture2D(uVelocityTexture, uv).rgb;
+
+  // 4. Apply Physics (The Math)
+  // Curl noise for fluid motion
+  vec3 noise = curlNoise(position * 0.1 + uTime * 0.1);
+  velocity += noise * 0.01;
+
+  // Euler integration: pos = pos + vel * dt
+  position += velocity;
+
+  // 5. Reset if dead
+  life -= 0.01;
+  if (life < 0.0) {
+    position = vec3(0.0); // Reset to center
+    life = 1.0;
+  }
+
+  // 6. Save the new state back to the texture (as a color!)
+  gl_FragColor = vec4(position, life);
+}
+```
+
+# THE PING-PONG TECHNIQUE
+
+There&apos;s a catch: You can&apos;t read from and write to the same texture at the same time. It creates a feedback loop. So we use &quot;Ping-Pong Buffering&quot;.
+
+We create **two** textures: A and B.
+
+**Frame 1:** Read from A -> Run Physics -> Write to B.
+**Frame 2:** Read from B -> Run Physics -> Write to A.
+
+We swap them every frame. This allows us to maintain state entirely on the GPU, updating 1 million data points in parallel in less than 1 millisecond.
