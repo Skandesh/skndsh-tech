@@ -4,10 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "pnpm generate:manifest && vite",
-    "build": "pnpm generate:manifest && vite build",
+    "dev": "pnpm generate:manifests && vite",
+    "build": "pnpm generate:manifests && vite build",
     "preview": "vite preview",
-    "generate:manifest": "tsx scripts/generate-blog-manifest.ts"
+    "generate:manifests": "pnpm generate:blog && pnpm generate:creative && pnpm generate:spiritual",
+    "generate:blog": "tsx scripts/generate-blog-manifest.ts",
+    "generate:creative": "tsx scripts/generate-creative-manifest.ts",
+    "generate:spiritual": "tsx scripts/generate-spiritual-manifest.ts"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

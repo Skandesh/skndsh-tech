@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 pnpm install          # Install dependencies
-pnpm dev              # Start dev server on port 3000
-pnpm build            # Production build
+pnpm dev              # Generate blog manifest + start dev server
+pnpm build            # Generate blog manifest + production build
 pnpm preview          # Preview production build
 ```
 
@@ -17,13 +17,20 @@ Create a `.env` file with `GEMINI_API_KEY` for the AI chat feature (uses Google 
 
 ## Architecture Overview
 
-This is a personal portfolio site for Skandesh built with React 19, TypeScript, Vite, and Three.js. It uses Tailwind CSS via CDN (configured in `index.html`).
+This is a multi-persona portfolio site for Skandesh built with React 19, TypeScript, Vite, and Three.js. It uses Tailwind CSS v4 locally via `@tailwindcss/vite` plugin (configured in `src/index.css`).
 
 ### Key Patterns
 
 - **Path aliases**: Use `@/` for imports from `src/` directory (configured in `vite.config.ts` and `tsconfig.json`)
-- **Routing**: React Router v7 with three routes: `/` (Home), `/blog/:slug`, `/lab`
-- **Styling**: Tailwind via CDN with custom theme (fonts: Inter, JetBrains Mono, Space Grotesk; colors: bg, surface, primary, accent)
+- **Routing**: React Router v7 with multi-profile structure:
+  - `/` - ProfileSelector (landing page with persona selection)
+  - `/tech` - Tech portfolio home
+  - `/creative` - Creative portfolio home
+  - `/travel` - Travel portfolio home
+  - `/spirituality` - Spirituality portfolio home
+  - `/blog/:slug` - Blog post pages
+  - `/lab` - Experimental/lab section
+- **Styling**: Tailwind v4 with custom theme (fonts: Inter, JetBrains Mono, Space Grotesk; colors: bg, surface, primary, accent)
 
 ### Core Components
 
@@ -32,11 +39,24 @@ This is a personal portfolio site for Skandesh built with React 19, TypeScript, 
 - `TextScramble.tsx` - Animated text scramble effect using anime.js
 - `InteractiveLab.tsx` - Experimental/lab section with interactive elements
 
+### Pages
+
+- `ProfileSelector.tsx` - Landing page for selecting persona/profile
+- `Home.tsx` - Tech portfolio home page
+- `CreativeHome.tsx` - Creative portfolio section
+- `TravelHome.tsx` - Travel portfolio section
+- `SpiritualityHome.tsx` - Spirituality portfolio section
+- `ConstructionPage.tsx` - Under construction placeholder
+- `LabPage.tsx` - Interactive experiments page
+- `BlogPostPage.tsx` - Individual blog post renderer
+
 ### Blog System
 
-Blog posts use a block-based content system defined in `types/blog.ts`:
-- Block types: `text`, `header`, `code`, `image`, `diagram`
-- Posts defined in `data/blogPosts.tsx`
+Blog posts support both block-based content and MDX:
+- Block types defined in `types/blog.ts`: `text`, `header`, `code`, `image`, `diagram`
+- Static posts in `data/blogPosts.tsx`
+- MDX support via `@mdx-js/react` and `@mdx-js/rollup`
+- Blog manifest auto-generated to `src/generated/blog-manifest.ts`
 - Rendered by `pages/BlogPostPage.tsx` with custom block renderers in `components/blog-blocks/`
 
 ## Code Conventions

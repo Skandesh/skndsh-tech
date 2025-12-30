@@ -1,0 +1,160 @@
+---
+title: "THE PARLIAMENT OF MACHINES: HOW DISTRIBUTED SYSTEMS AGREE ON TRUTH"
+date: "2024.12.25"
+category: DISTRIBUTED SYSTEMS
+readTime: "16 MIN"
+---
+
+# THE ASSASSINATION
+
+Server 1 is the leader. It has been for three days. Everything is working.
+
+Client A sends a write request: &quot;Set balance = 500.&quot; Server 1 receives it, logs it, starts replicating to the other four servers. Two of them acknowledge. That&apos;s a majority. Server 1 marks the entry as committed and sends a success response back to Client A.
+
+Then Server 1 dies. Power failure. Hardware fault. Doesn&apos;t matter. It&apos;s gone.
+
+Server 2, 3, 4, and 5 are still alive. But they don&apos;t know Server 1 is dead. Not yet. Network messages take time. Timeouts take longer.
+
+Meanwhile, Client B—connected to Server 2—sends a write request: &quot;Set balance = 200.&quot; Server 2 thinks Server 1 is still leader. It forwards the request... into the void. No response. Client B retries. Still nothing.
+
+Somewhere else, Server 3 finally notices. It hasn&apos;t heard from Server 1 in 200 milliseconds. That&apos;s too long. Server 3 declares: &quot;The leader is dead. I&apos;m running for election.&quot;
+
+This is the moment where distributed systems either work or fall apart. Five machines that can&apos;t trust the clock, can&apos;t trust the network, can&apos;t even trust that the other machines are alive—need to agree on who&apos;s in charge and what sequence of events actually happened.
+
+The algorithm that solves this is called Raft. And it thinks like a parliament.
+
+# THE PROBLEM OF LEADERSHIP
+
+Why do we need a leader at all? It seems like a single point of failure. Why not let every server accept writes?
+
+Try it. Server 1 accepts &quot;Set X = 10.&quot; Server 2 accepts &quot;Set X = 20.&quot; Now what&apos;s X? Depends who you ask. That&apos;s not a database. That&apos;s chaos.
+
+Okay, let every server wait for every other server to agree before accepting a write. Now try having one server go slow. Everyone waits. Try having one server crash. Everyone waits forever. Deadlock.
+
+The fundamental tension of distributed systems is this: you want availability (the system works even when some machines fail) and you want consistency (everyone agrees on the same data). You can&apos;t have both perfectly. But you can get remarkably close.
+
+The insight behind Raft is ancient, borrowed from human governance: elect a leader. One source of truth. All writes go through them. They decide the order. They enforce consistency. When they die, you hold a new election.
+
+The question is: how do machines vote?
+
+# THE CAMPAIGN
+
+Every server in a Raft cluster starts in the same state: follower. A follower is a loyal citizen. It does what the leader says. It doesn&apos;t make decisions. It waits for orders.
+
+But followers are not patient forever. Each follower has an election timeout—a clock that ticks down. If the timeout expires before the follower hears from a leader, something is wrong. The leader is dead, or the network is broken, or something else has gone sideways.
+
+When a follower&apos;s timeout expires, it becomes a candidate. And candidates have one job: win an election.
+
+The candidate increments its term number. Think of terms like presidential administrations: Term 1, Term 2, Term 3. Each election creates a new term. Terms never go backwards. If you see a message from a higher term, you know there&apos;s been an election you missed.
+
+The candidate then votes for itself and sends a message to every other server: &quot;I&apos;m running for leader in Term 4. Vote for me.&quot;
+
+Each server gets one vote per term. First candidate to ask, gets the vote. No second-guessing, no strategy, no coalitions. Simple majority wins.
+
+If the candidate gets votes from a majority of servers (including itself), it becomes the new leader. It immediately sends a heartbeat to everyone: &quot;I&apos;m your leader now. Stop your election timers.&quot;
+
+If the candidate doesn&apos;t get enough votes—maybe another candidate won, maybe the votes split—it goes back to being a follower and tries again later.
+
+Here&apos;s the genius: election timeouts are randomized. Each server picks a random timeout between 150 and 300 milliseconds. This tiny bit of randomness prevents deadlock.
+
+Without randomization, all servers would time out at the same moment. They&apos;d all become candidates at the same moment. They&apos;d all vote for themselves. Nobody would win. Repeat forever.
+
+With randomization, usually one server times out first. By the time the others wake up, that server has already collected enough votes. Election over before it started. Most elections complete in a single round.
+
+# THE REGIME
+
+Once elected, the leader has a job: maintain the log.
+
+The log is a sequence of entries. Each entry is a command—something like &quot;Set X = 10&quot; or &quot;Delete Y.&quot; Every server maintains its own copy of the log. The leader&apos;s job is to make sure all the logs match.
+
+When a client sends a write request, the leader appends it to its own log first. Then it sends the entry to all followers. Each follower appends the entry to its own log and sends back an acknowledgment.
+
+Once the leader has received acknowledgments from a majority of servers—including itself—it marks the entry as committed. A committed entry is permanent. It will never be lost, never be overwritten, never be forgotten. The leader then responds to the client: &quot;Your write succeeded.&quot;
+
+But wait. What if a follower was slow? What if it crashed and came back? What if it missed some entries?
+
+The leader handles this with heartbeats. Every 50 milliseconds or so, the leader sends a message to every follower. The message says: &quot;I&apos;m still alive. Here&apos;s what you might have missed.&quot; If a follower is behind, the leader sends the missing entries. The follower catches up.
+
+Heartbeats serve a dual purpose. They replicate data, yes. But they also reset election timers. As long as followers keep hearing from the leader, they stay followers. They don&apos;t start elections. Stability.
+
+The leader&apos;s heartbeat is its pulse. The moment it stops, followers start counting down to a coup.
+
+# THE COUP
+
+The nightmare scenario in any distributed system is the network partition. The cables between data centers get cut. Half the servers are isolated from the other half. Each half thinks the other half is dead.
+
+Picture five servers: A, B, C, D, E. A is the leader. The network splits: A and B are on one side, C, D, and E are on the other.
+
+A keeps sending heartbeats to B. B stays loyal. But A&apos;s heartbeats to C, D, and E go nowhere. They&apos;re lost in the void.
+
+From C&apos;s perspective, the leader is dead. After 200 milliseconds of silence, C becomes a candidate. It starts an election for Term 2. It sends vote requests to D and E. They haven&apos;t heard from A either. They vote for C. C wins. C is now the leader of {C, D, E}.
+
+There are now two leaders. A thinks it&apos;s in charge of a five-server cluster. C thinks it&apos;s in charge of a three-server cluster. Split brain.
+
+Clients connected to A&apos;s side of the partition send writes to A. Clients connected to C&apos;s side send writes to C. Different writes. Different logs. Two versions of reality.
+
+This is where Raft&apos;s majority rule saves everything.
+
+A tries to commit a write. It sends the entry to its followers. But A only has access to B. That&apos;s two servers. A needs three acknowledgments to commit (a majority of five). A never gets that third acknowledgment. The write is appended to A&apos;s log but never committed. A tells the client: &quot;I can&apos;t confirm this. Something&apos;s wrong.&quot;
+
+C tries to commit a write. It sends the entry to D and E. That&apos;s three servers—a majority. The entry is committed. C tells the client: &quot;Success.&quot;
+
+When the partition heals and all five servers can talk again, A discovers that C has a higher term number. A sees a message from Term 2 when A is still in Term 1. Raft&apos;s rule is absolute: if you see a higher term, you immediately step down. A becomes a follower.
+
+C sends its log to A and B. A has some uncommitted entries that conflict with C&apos;s log. Raft&apos;s rule: uncommitted entries are expendable. A&apos;s conflicting entries are deleted. C&apos;s log—the committed log—is replicated to everyone.
+
+One truth survives. The writes that C committed during the partition are permanent. The writes that A accepted but couldn&apos;t commit are gone. Clients who sent writes to A during the partition got told their writes failed. They can retry. No lies. No inconsistency.
+
+# THE RECONCILIATION
+
+When a partitioned server rejoins the cluster, it might be behind. It might have stale data. It might have conflicting data. Raft handles all of this through log replication.
+
+The leader&apos;s log is always authoritative. When a follower reconnects, the leader figures out where the follower&apos;s log diverges from its own. It then sends all the entries the follower is missing. If the follower has entries that conflict—entries that were never committed—those entries are overwritten.
+
+This might feel aggressive. A server had data; now that data is gone. But remember: that data was never committed. The client was never told &quot;success.&quot; From the client&apos;s perspective, the write failed. Deleting it is correct.
+
+The safety guarantee Raft provides is this: once an entry is committed, it will appear in the logs of all future leaders. It will never be lost, as long as a majority of servers survive. You can kill servers, partition networks, crash and restart machines. As long as more than half are eventually alive and connected, the committed data survives.
+
+This is the contract. Uncommitted data is tentative, subject to being discarded. Committed data is permanent. Clients know the difference because they only get &quot;success&quot; for committed writes.
+
+# THE REAL WORLD
+
+Raft isn&apos;t academic. It powers critical infrastructure.
+
+etcd is the brain of Kubernetes. Every cluster state change—pods created, services modified, configurations updated—goes through etcd. etcd uses Raft. When you deploy to Kubernetes, you&apos;re trusting Raft to keep your cluster consistent.
+
+CockroachDB is a distributed SQL database designed to survive data center failures. It uses Raft for replication. Your data exists in multiple copies across multiple machines, and Raft makes sure they all agree.
+
+TiKV is the storage layer under TiDB, a distributed MySQL-compatible database. Raft again. Consul, the service mesh tool, uses Raft for its key-value store. InfluxDB uses Raft for cluster coordination.
+
+Why Raft? Why not the older algorithm, Paxos?
+
+Paxos was invented by Leslie Lamport in 1989. It&apos;s provably correct. It&apos;s also famously incomprehensible. Lamport himself wrote that most readers find the Paxos paper &quot;unintelligible.&quot; Engineers tried to implement it and got it wrong. They got it wrong for years.
+
+Raft was designed in 2014 by Diego Ongaro and John Ousterhout with a specific goal: understandability. Same guarantees as Paxos. Same safety properties. But designed so that engineers could actually implement it correctly.
+
+The Raft paper includes a study: they taught Raft and Paxos to students and measured comprehension. Students understood Raft better. They made fewer mistakes implementing it. Raft won not because it was smarter, but because it was clearer.
+
+# THE MENTAL MODEL
+
+When someone asks you how Raft works, here&apos;s the image to hold:
+
+Five politicians sit in a room. One is the president. They can only communicate by passing notes—no shouting across the room, no body language, just notes.
+
+Any of them could have a heart attack at any moment. The notes could get lost. The building could be split by an earthquake, leaving some politicians on one side of the rubble and some on the other.
+
+Their job is to agree on a sequence of laws. The president proposes laws. Each law must be signed by a majority before it becomes official. Once a law is on the books, it stays on the books.
+
+If the president collapses, the others wait a moment, then hold an emergency election. Whoever gets the most votes becomes the new president. They pick up where the old president left off.
+
+If the building splits, each side might try to continue governing. But only the side with a majority can actually pass laws. The minority side proposes laws, but can&apos;t get enough signatures. When the earthquake clears and everyone reconnects, they compare notes. The majority&apos;s laws are real. The minority&apos;s draft proposals are discarded.
+
+That&apos;s Raft. Terms are administrations. The log is the law book. Heartbeats are proof-of-life notes. Commits are majority signatures. Elections are, well, elections.
+
+It&apos;s not a perfect metaphor—machines are faster than politicians, and network latency is more predictable than political consensus. But the structure is the same. A simple idea: let one entity lead, make decisions require majorities, and when leaders fail, elect new ones quickly.
+
+Distributed consensus, solved by democracy.
+
+---
+
+*Head to the Lab to run your own Raft cluster. Kill servers. Create partitions. Watch elections unfold in real-time. See why majority rules.*

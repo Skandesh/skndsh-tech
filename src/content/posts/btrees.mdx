@@ -1,0 +1,181 @@
+---
+title: "THE LIBRARY THAT READS ITSELF: HOW B-TREES TAMED THE SPINNING DISK"
+date: "2024.12.26"
+category: DATA STRUCTURES / DATABASES
+readTime: "16 MIN"
+---
+
+# THE ARCHIVE FIRE
+
+You have 100 million records. Each record is 1KB. That&apos;s 100GB of data sitting on a spinning disk.
+
+Your binary search tree works beautifully in RAM. Each comparison takes nanoseconds. The tree is perfectly balanced. You can find any record in log(n) comparisons—roughly 27 steps for 100 million records. Elegant. Efficient. Exactly what the textbooks promised.
+
+But this data doesn&apos;t fit in RAM. It lives on disk.
+
+And disk has a terrible secret.
+
+Reading a single byte from a spinning disk costs the same as reading 4,096 bytes. The disk head has to seek to the right track, wait for the platter to rotate to the right sector, and only then can it start reading. That seek-and-rotate takes about 10 milliseconds. Whether you read 1 byte or 4,000, you&apos;re paying that 10ms tax.
+
+Your perfectly balanced binary tree has depth 27. Each comparison requires reading a node from disk. That&apos;s 27 disk reads. At 10 milliseconds each, your query takes 270 milliseconds.
+
+Meanwhile, PostgreSQL finds the same record in 3 disk reads. 30 milliseconds. Nine times faster. Same data. Same disk. Different structure.
+
+The difference is a data structure invented in 1970 by Rudolf Bayer and Edward McCreight at Boeing. They weren&apos;t thinking about databases. They were thinking about a harder problem: how do you organize information when walking through it is expensive?
+
+They built a library.
+
+# THE ARCHITECTURE OF PATIENCE
+
+Here is the fundamental insight that changes everything: if reading one byte costs the same as reading 4,000 bytes, you should store more than one key per node.
+
+A binary tree stores one key per node. Each node has two children. The tree grows tall and thin, like a skyscraper with one room per floor. To reach the penthouse, you climb 27 flights of stairs.
+
+But what if each floor had 100 rooms? And what if climbing one flight of stairs—paying that 10ms disk seek—gave you access to all 100 rooms at once?
+
+Now you need only 3 floors to hold a million rooms. Three disk reads instead of twenty-seven. The tree got fat and short. The stairs got cheaper.
+
+This is the B-tree. The B might stand for Boeing, or Bayer, or Balanced. Nobody remembers. What matters is the shape: fat nodes, shallow depth, minimal disk access.
+
+A binary search tree optimizes for comparisons. A B-tree optimizes for disk reads. When your comparisons are fast and your disk reads are slow, the B-tree wins decisively.
+
+# THE BLUEPRINT
+
+Every B-tree node is a sorted array of keys with pointers between them.
+
+Picture a shelf in a library. On the shelf are divider cards: A-E, F-J, K-O, P-T, U-Z. Between the dividers are spaces where books can go. Each divider tells you: everything to my left comes before me alphabetically, everything to my right comes after.
+
+A B-tree node works the same way. The keys are the dividers. The pointers between them lead to child nodes containing keys in that range. If you&apos;re looking for the key 42, you scan the node&apos;s keys until you find where 42 would fit, then follow the appropriate pointer down.
+
+The critical constraint: every node must be at least half full. If a node can hold 100 keys, it must always contain at least 50. This prevents the tree from degenerating into a sparse, inefficient structure. It guarantees that every disk read retrieves a useful density of information.
+
+The other critical constraint: all leaves are at the same depth. Unlike a binary search tree, which can become lopsided if you insert keys in sorted order, a B-tree stays perfectly balanced. Every path from root to leaf has the same length. Every query pays the same cost.
+
+The tree doesn&apos;t grow downward like a binary tree. It grows upward. When a node overflows, it splits, and the middle key rises to the parent. When the root splits, a new root appears above it. The tree gets one level taller, but only when absolutely necessary.
+
+# THE GUIDED TOUR
+
+Searching a B-tree is a controlled descent through the hierarchy.
+
+You start at the root. The root node contains, say, 100 keys. You perform binary search within the node to find where your target key would fall. If you&apos;re looking for 47, you might find that 47 falls between the keys 30 and 60. You follow the pointer between those keys.
+
+You arrive at a second-level node. This node contains keys between 30 and 60—perhaps 31, 35, 42, 48, 55, 59. You search again. 47 falls between 42 and 48. You follow that pointer.
+
+You arrive at a leaf node. You search the leaf. Either 47 is there, or it isn&apos;t.
+
+Three disk reads. Three nodes examined. The search is done.
+
+Compare this to a binary tree. Each comparison narrows your search by half, so you need log2(n) comparisons. For 100 million records, that&apos;s about 27 comparisons, and each comparison is a disk read.
+
+A B-tree with 100 keys per node narrows your search by a factor of 100 at each level. You need log100(n) disk reads. For 100 million records, that&apos;s about 4 disk reads.
+
+You enter the grand hall of the library. The head librarian looks at your request and points you to the east wing. In the east wing, a junior librarian points you to room 47. Inside room 47, you find the exact book you need. Three consultations. Not twenty-seven.
+
+# THE RENOVATION
+
+Insertions must maintain balance without rebuilding the entire tree. The B-tree accomplishes this with a simple but powerful mechanism: the split.
+
+To insert a key, you first search for where it belongs. You descend through the tree, following pointers until you reach the appropriate leaf node. If the leaf has room, you simply insert the key in sorted order. Done.
+
+But what if the leaf is full?
+
+The leaf splits. You take the middle key—the median—and promote it to the parent node. The keys to the left of the median stay in the original node. The keys to the right move to a new node. The parent now has an extra key and an extra pointer.
+
+But what if the parent is also full?
+
+The parent splits too. The median of the parent rises to its parent. The split can cascade all the way up to the root.
+
+And what if the root is full and needs to split?
+
+A new root is created above the old root. The tree gains one level of depth. This is the only way a B-tree grows taller. The tree always grows from the top, not the bottom.
+
+The east wing of the library is full. You cannot simply add another room. Instead, you divide the wing in half. The dividing wall becomes a new landmark. The head librarian updates her directory: &quot;A-M is now in East Wing A. N-Z is in the new East Wing B.&quot; The library grew, but no floor was added. Only when the grand hall itself overflows does a new floor appear above it.
+
+# THE DEMOLITION CREW
+
+Deletions are trickier than insertions. You must prevent nodes from becoming too empty.
+
+If you delete a key from a node that has plenty of keys, no problem. The key disappears, and the node remains valid.
+
+But what if the node drops below the minimum occupancy—below half full?
+
+You have two options: borrow or merge.
+
+First, check your siblings. If an adjacent sibling has more than the minimum number of keys, you can borrow one. The borrowed key doesn&apos;t move directly; it rotates through the parent. The parent gives you one of its keys, and the sibling gives a key to the parent. The tree remains balanced.
+
+But what if both siblings are also at minimum occupancy? Nobody can afford to lend.
+
+Then you merge. You combine the underflowing node with a sibling, pulling down the separating key from the parent. Now the parent has one fewer key and one fewer pointer.
+
+And what if this makes the parent underflow?
+
+The same process repeats. Borrow if possible, merge if necessary. The underflow can cascade up to the root.
+
+And what if the root ends up with zero keys?
+
+The root is deleted. Its only child becomes the new root. The tree shrinks by one level. Just as the tree only grows upward, it only shrinks from the top.
+
+# THE EVOLUTION
+
+The B-tree as I&apos;ve described it stores data in every node—both internal nodes and leaves. This works, but there&apos;s a more refined version: the B+ tree.
+
+In a B+ tree, all the actual records live in the leaf nodes. The internal nodes contain only keys and pointers. They&apos;re a pure index, a navigation structure, a directory without content.
+
+Why is this better? Two reasons.
+
+First, internal nodes become smaller. They don&apos;t carry record data, so more keys fit per node, so the tree becomes even shallower. Fewer disk reads.
+
+Second, the leaf nodes are linked. Each leaf has a pointer to the next leaf. This makes range queries trivial.
+
+Want all records with keys between 100 and 200? Search for 100, arrive at the appropriate leaf, then walk the linked list of leaves until you pass 200. The leaves are in sorted order. The walk is sequential. Disk reads become sequential reads, which are dramatically faster than random seeks.
+
+The original library stored books on every floor. The improved design stores all books on the ground floor, with upper floors serving only as directories. Need all books from A to G? Walk the ground floor corridor. No climbing required.
+
+This is why virtually every database uses B+ trees for their indexes. The combination of shallow depth and sequential leaf access makes them unbeatable for real-world query patterns.
+
+# THE EMPIRE
+
+B-trees and their variants power almost every storage system you use.
+
+PostgreSQL uses B-trees as its default index type. Every time you create an index on a column, you&apos;re building a B-tree. The GiST, GIN, and BRIN index types are all B-tree variants, adapted for different data types and query patterns.
+
+MySQL&apos;s InnoDB storage engine organizes the entire table as a B+ tree, with the primary key as the index. Secondary indexes are also B+ trees that point back to the primary key. Everything is trees.
+
+SQLite is even more extreme. The entire database file is a collection of B-trees. Tables are B-trees. Indexes are B-trees. The schema itself is stored in a B-tree. It&apos;s trees all the way down.
+
+MongoDB&apos;s default index is a B-tree. So is Oracle&apos;s. So is every other serious database&apos;s.
+
+But it&apos;s not just databases. Filesystems use B-trees too.
+
+NTFS, the Windows filesystem, uses B+ trees for its Master File Table and directory indexes. HFS+, the classic Mac filesystem, is built on B-trees. APFS, the modern Mac filesystem, still uses B-trees. Ext4, the standard Linux filesystem, uses B-trees for extent allocation. Btrfs, the experimental Linux filesystem, has &quot;B-tree&quot; in its name.
+
+The numbers tell the story. A B+ tree with 100 keys per node and 4 levels can index 100 million records. With 5 levels, 10 billion. The scale is almost unlimited, and the cost is always a handful of disk reads.
+
+# THE MENTAL MODEL
+
+When someone asks you about B-trees, hold this image.
+
+A vast library with exactly three floors.
+
+The top floor has one room—the grand hall. In the grand hall are 100 index cards, each pointing to a room on the second floor.
+
+The second floor has 100 rooms. Each room has 100 index cards, each pointing to a room on the first floor.
+
+The first floor has 10,000 rooms. Each room contains 100 books.
+
+Three floors. 100 rooms on the second floor. 10,000 rooms on the first floor. One million books total.
+
+To find any book, you consult the grand hall (1 room), then the appropriate second-floor room (1 room), then the appropriate first-floor room (1 room). Three consultations. Three disk reads.
+
+Binary search through 1 million items: 20 disk reads.
+B-tree search through 1 million items: 3 disk reads.
+
+The difference is architecture. The B-tree was designed by people who understood that reading is expensive, that locality matters, and that a fat tree beats a tall tree when you&apos;re climbing stairs.
+
+Your SSD is faster than a spinning disk. But the principle holds. The fastest read is the one you don&apos;t have to make. The B-tree minimizes reads by maximizing what each read contains.
+
+This is not a clever algorithm. It&apos;s clever architecture. And it&apos;s been running your databases for fifty years.
+
+---
+
+*Head to the Lab to build your own B-tree. Insert keys, watch nodes split. Delete keys, watch nodes merge. See how the tree grows upward, not downward. The library awaits.*

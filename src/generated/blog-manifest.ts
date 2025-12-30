@@ -5,6 +5,48 @@ import type { BlogPost } from '@/types/blog';
 
 export const blogManifest: Omit<BlogPost, 'id' | 'content'>[] = [
   {
+    "slug": "word-embeddings",
+    "title": "THE ATLAS OF MEANING: HOW MACHINES LEARNED TO MAP LANGUAGE",
+    "date": "2024.12.26",
+    "category": "AI / MACHINE LEARNING",
+    "readTime": "16 MIN"
+  },
+  {
+    "slug": "btrees",
+    "title": "THE LIBRARY THAT READS ITSELF: HOW B-TREES TAMED THE SPINNING DISK",
+    "date": "2024.12.26",
+    "category": "DATA STRUCTURES / DATABASES",
+    "readTime": "16 MIN"
+  },
+  {
+    "slug": "bloom-filters",
+    "title": "THE BOUNCER&apos;S MEMORY: THE DATA STRUCTURE THAT NEVER FORGETS",
+    "date": "2024.12.26",
+    "category": "DATA STRUCTURES",
+    "readTime": "14 MIN"
+  },
+  {
+    "slug": "transformers-attention",
+    "title": "THE ATTENTION ECONOMY: BUILDING A MIND THAT READS IN PARALLEL",
+    "date": "2024.12.25",
+    "category": "AI / NEURAL NETWORKS",
+    "readTime": "18 MIN"
+  },
+  {
+    "slug": "raft-consensus",
+    "title": "THE PARLIAMENT OF MACHINES: HOW DISTRIBUTED SYSTEMS AGREE ON TRUTH",
+    "date": "2024.12.25",
+    "category": "DISTRIBUTED SYSTEMS",
+    "readTime": "16 MIN"
+  },
+  {
+    "slug": "consistent-hashing",
+    "title": "THE RING OF POWER: WHY ADDING A SERVER SHOULDN&apos;T BREAK THE INTERNET",
+    "date": "2024.12.25",
+    "category": "DISTRIBUTED SYSTEMS",
+    "readTime": "14 MIN"
+  },
+  {
     "slug": "debugging-distributed-state",
     "title": "THE GHOST IN THE SHELL: DEBUGGING DISTRIBUTED STATE",
     "date": "2024.11.24",
